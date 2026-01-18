@@ -13,9 +13,9 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def extract_tags(readme):
   tags = set()
-  m = re.search("### 분류\\s+(.*)", readme)
+  m = re.search(r"### 분류\s+(.*)", readme)
   if m:
-    raw = m.group(1).split("\\n")[0]
+    raw = m.group(1).split("\n")[0]
     for t in raw.split(","):
       if t.strip():
         tags.add(t.strip())
@@ -32,9 +32,10 @@ def main():
     if tier.type != "dir":
       continue
 
-    tier_name = tier.name
-    problems = repo.get_contents(tier.path)
+    tier_name = tier.name              # 예: "Bronze 1"
+    tier_category = tier_name.split()[0]  # 예: "Bronze"
 
+    problems = repo.get_contents(tier.path)
     for p in problems:
       if p.type != "dir":
         continue
@@ -44,7 +45,6 @@ def main():
 
       readme = None
       code = None
-
       for f in files:
         if f.name == "README.md":
           readme = f.decoded_content.decode("utf-8")
@@ -58,10 +58,10 @@ def main():
 
       front = "---\n"
       front += "layout: single\n"
-      front += f"title: \"[BOJ] {num} - {title.strip()}\"\n"
+      front += f"title: \"[{tier_name} / {num}] {title.strip()}\"\n"
       front += "categories:\n"
       front += "  - BOJ\n"
-      front += f"  - {tier_name}\n"
+      front += f"  - {tier_category}\n"
       front += "tags:\n"
       for t in tags:
         front += f"  - {t}\n"
@@ -74,8 +74,7 @@ def main():
       body += "```\n"
 
       fname = f"{today}-boj-{num}.md"
-      path = os.path.join(OUTPUT_DIR, fname)
-      with open(path, "w", encoding="utf-8") as out:
+      with open(os.path.join(OUTPUT_DIR, fname), "w", encoding="utf-8") as out:
         out.write(front + body)
 
       print("[생성 완료]", fname)

@@ -1,41 +1,48 @@
 import re
 
 def convert_to_markdown(input_text):
+  def clean(text):
+    return text.replace("<p>", "").replace("</p>", "").strip()
+
   link = ""
-  m = re.search("\\[문제 링크\\]\\((.*?)\\)", input_text)
+  m = re.search(r"\[문제 링크\]\((.*?)\)", input_text)
   if m:
     link = m.group(1)
 
-  cat = ""
-  m = re.search("### 분류\\s+(.*)", input_text)
+  category = ""
+  m = re.search(r"### 분류\s+(.*)", input_text)
   if m:
-    cat = m.group(1).split("\\n")[0]
+    category = m.group(1).split("\n")[0].strip()
 
   desc = ""
-  m = re.search("### 문제 설명\\s+(.*?)\\n###", input_text, re.DOTALL)
+  m = re.search(r"### 문제 설명\s+(.*?)\n###", input_text, re.DOTALL)
   if m:
-    desc = m.group(1).strip()
+    desc = clean(m.group(1))
 
   inp = ""
-  m = re.search("### 입력\\s+(.*?)\\n###", input_text, re.DOTALL)
+  m = re.search(r"### 입력\s+(.*?)\n###", input_text, re.DOTALL)
   if m:
-    inp = m.group(1).strip()
+    inp = clean(m.group(1))
 
   out = ""
-  m = re.search("### 출력\\s+(.*)", input_text, re.DOTALL)
+  m = re.search(r"### 출력\s+(.*)", input_text, re.DOTALL)
   if m:
-    out = m.group(1).strip()
+    out = clean(m.group(1))
 
-  text = ""
-  text += f"[문제 링크]({link})\\n\\n"
-  text += "---\\n\\n"
-  text += "### 분류\\n"
-  text += f"- {cat}\\n\\n"
-  text += "### 문제 설명\\n"
-  text += desc + "\\n\\n"
-  text += "### 입력\\n"
-  text += inp + "\\n\\n"
-  text += "### 출력\\n"
-  text += out + "\\n"
+  return f"""
+[문제 링크]({link})
 
-  return text
+---
+
+### 분류
+- {category}
+
+### 문제 설명
+{desc}
+
+### 입력
+{inp}
+
+### 출력
+{out}
+"""

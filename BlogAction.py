@@ -6,77 +6,55 @@ from convert import convert_to_markdown
 
 GITHUB_TOKEN = os.environ["BLOG_TOKEN"]
 REPO_NAME = "Yeonb0/Code-Practice"
-BLOG_REPO = "Yeonb0/Yeonb0.github.io"
 OUTPUT_DIR = "generated"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def extract_problem_info(path: str):
-  # 백준/Bronze/10093. 숫자/README.md
-  parts = path.split("/")
-  tier = parts[1] if len(parts) > 1 else "Unknown"
-  for p in parts:
-    if "." in p:
-      num, title = p.split(".", 1)
-      return tier, num.strip(), title.strip()
-  return None, None, None
-
-def extract_tags_from_readme(readme: str):
+def extract_tags(readme):
   tags = set()
-
-  # 분류 섹션에서 태그 추출
-  match = re.search(r"### 분류\s+(.*)", readme)
-  if match:
-    raw = match.group(1)
-    raw = re.split(r"\n#+", raw)[0]
+  m = re.search(r"### 분류\s+(.*)", readme)
+  if m:
+    raw = m.group(1).split("\n")[0]
     for t in raw.split(","):
-      tags.add(t.strip())
-
+      if t.strip():
+        tags.add(t.strip())
   tags.add("C++")
   return sorted(tags)
 
 def main():
   g = Github(GITHUB_TOKEN)
   repo = g.get_repo(REPO_NAME)
-  blog_repo = g.get_repo(BLOG_REPO)
-
   today = datetime.now().strftime("%Y-%m-%d")
-
-  # 이미 블로그에 있는 문제 번호 (중복 방지)
-  existing = set()
-  for p in blog_repo.get_contents("_posts"):
-    if "boj-" in p.name:
-      try:
-        existing.add(p.name.split("boj-")[1].split(".")[0])
-      except:
-        pass
 
   with open("changed.txt", encoding="utf-8") as f:
     changed = f.readlines()
 
-  processed = set()
+  done = set()
 
   for line in changed:
-    line = line.strip()
-
     if not line.startswith("백준/"):
       continue
 
-    tier, problem_number, problem_title = extract_problem_info(line)
-    if not problem_number:
+    parts = line.strip().split("/")
+    tier_name = parts[1]                 # "Bronze 1"
+    tier_category = tier_name.split()[0] # "Bronze"
+
+    num = None
+    title = None
+    for p in parts:
+      if "." in p:
+        num, title = p.split(".", 1)
+        break
+
+    if not num or num in done:
       continue
+    done.add(num)
 
-    if problem_number in processed or problem_number in existing:
-      continue
-
-    processed.add(problem_number)
-
-    folder_path = "/".join(line.split("/")[:-1])
-    files = repo.get_contents(folder_path)
+    folder = "/".join(parts[:-1])
+    files = repo.get_contents(folder)
 
     readme = None
     code = None
-
     for f in files:
       if f.name == "README.md":
         readme = f.decoded_content.decode("utf-8")
@@ -86,37 +64,30 @@ def main():
     if not readme or not code:
       continue
 
-    tags = extract_tags_from_readme(readme)
+    tags = extract_tags(readme)
 
-    md = convert_to_markdown(readme)
+    front = "---\n"
+    front += "layout: single\n"
+    front += f"title: \"[{tier_name} / {num}] {title.strip()}\"\n"
+    front += "categories:\n"
+    front += "  - BOJ\n"
+    front += f"  - {tier_category}\n"
+    front += "tags:\n"
+    for t in tags:
+      front += f"  - {t}\n"
+    front += "---\n\n"
 
-    md = md.replace(
-      "categories:",
-      f"categories:\n  - BOJ\n  - {tier}"
-    )
+    body = convert_to_markdown(readme)
+    body += "\n## 💻 코드 (C++)\n\n"
+    body += "```cpp\n"
+    body += code + "\n"
+    body += "```\n"
 
-    md = md.replace(
-      "tag: []",
-      "tag:\n" + "\n".join([f"  - {t}" for t in tags])
-    )
+    fname = f"{today}-boj-{num}.md"
+    with open(os.path.join(OUTPUT_DIR, fname), "w", encoding="utf-8") as out:
+      out.write(front + body)
 
-    md = md.replace(
-      'title: ""',
-      f'title: "[BOJ] {problem_number} - {problem_title}"'
-    )
-
-    md += (
-      "\n## 💻 코드 (C++)\n\n"
-      "```cpp\n"
-      f"{code}\n"
-      "```\n"
-    )
-
-    filename = f"{today}-boj-{problem_number}.md"
-    with open(os.path.join(OUTPUT_DIR, filename), "w", encoding="utf-8") as out:
-      out.write(md)
-
-    print(f"[생성 완료] {filename}")
+    print("[생성 완료]", fname)
 
 if __name__ == "__main__":
   main()
