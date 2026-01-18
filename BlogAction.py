@@ -78,10 +78,11 @@ def main():
     front += "---\n\n"
 
     body = convert_to_markdown(readme)
-    body += "\n## 💻 코드 (C++)\n\n"
+    body += "\n\n## 💻 코드 (C++)\n\n"
     body += "```cpp\n"
-    body += code + "\n"
-    body += "```\n"
+    body += code.rstrip() + "\n"
+    body += "```\n\n"
+
 
     fname = f"{today}-boj-{num}.md"
     with open(os.path.join(OUTPUT_DIR, fname), "w", encoding="utf-8") as out:
