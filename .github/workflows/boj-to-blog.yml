@@ -27,7 +27,7 @@ jobs:
     - name: Generate posts
       env:
         BLOG_TOKEN: ${{ secrets.BLOG_TOKEN }}
-      run: python BlogActionAll.py 
+      run: python BlogAction.py 
 
     - name: Push to blog
       env:
