@@ -26,67 +26,79 @@ def main():
   repo = g.get_repo(REPO_NAME)
   today = datetime.now().strftime("%Y-%m-%d")
 
-  base = repo.get_contents("백준")
+  # 🔑 이번 커밋에서 변경된 파일만 사용
+  with open("changed.txt", encoding="utf-8") as f:
+    changed = f.readlines()
 
-  for tier in base:
-    if tier.type != "dir":
+  processed = set()
+
+  for line in changed:
+    path = line.strip()
+
+    # BOJ 문제 파일만
+    if not path.startswith("백준/"):
       continue
 
-    tier_name = tier.name                 # Bronze 1
-    tier_category = tier_name.split()[0]  # Bronze
+    # 문제 폴더 경로 추출
+    folder = "/".join(path.split("/")[:-1])
+    if folder in processed:
+      continue
+    processed.add(folder)
 
-    problems = repo.get_contents(tier.path)
-    for p in problems:
-      if p.type != "dir":
-        continue
+    # 폴더명에서 번호/제목 추출
+    name = folder.split("/")[-1]
+    if "." not in name:
+      continue
 
-      if "." not in p.name:
-        continue
+    num, title = name.split(".", 1)
 
-      num, title = p.name.split(".", 1)
-      fname = f"{today}-boj-{num}.md"
-      out_path = os.path.join(OUTPUT_DIR, fname)
+    files = repo.get_contents(folder)
 
-      # 🔑 중복 방지 (여기가 정답 위치)
-      if os.path.exists(out_path):
-        continue
+    readme = None
+    code = None
+    for f in files:
+      if f.name == "README.md":
+        readme = f.decoded_content.decode("utf-8")
+      elif f.name.endswith(".cc"):
+        code = f.decoded_content.decode("utf-8")
 
-      files = repo.get_contents(p.path)
+    if not readme or not code:
+      continue
 
-      readme = None
-      code = None
-      for f in files:
-        if f.name == "README.md":
-          readme = f.decoded_content.decode("utf-8")
-        elif f.name.endswith(".cc"):
-          code = f.decoded_content.decode("utf-8")
+    # 티어 정보
+    tier_name = folder.split("/")[1]           # Bronze 1
+    tier_category = tier_name.split()[0]       # Bronze
 
-      if not readme or not code:
-        continue
+    tags = extract_tags(readme)
 
-      tags = extract_tags(readme)
+    front = "---\n"
+    front += "layout: single\n"
+    front += f"title: \"[{tier_name} / {num}] {title.strip()}\"\n"
+    front += "categories:\n"
+    front += "  - BOJ\n"
+    front += f"  - {tier_category}\n"
+    front += "tags:\n"
+    for t in tags:
+      front += f"  - {t}\n"
+    front += "---\n\n"
 
-      front = "---\n"
-      front += "layout: single\n"
-      front += f"title: \"[{tier_name} / {num}] {title.strip()}\"\n"
-      front += "categories:\n"
-      front += "  - BOJ\n"
-      front += f"  - {tier_category}\n"
-      front += "tags:\n"
-      for t in tags:
-        front += f"  - {t}\n"
-      front += "---\n\n"
+    body = convert_to_markdown(readme)
+    body += "\n\n## 💻 코드 (C++)\n\n"
+    body += "```cpp\n"
+    body += code.rstrip() + "\n"
+    body += "```\n\n"
 
-      body = convert_to_markdown(readme)
-      body += "\n\n## 💻 코드 (C++)\n\n"
-      body += "```cpp\n"
-      body += code.rstrip() + "\n"
-      body += "```\n\n"
+    fname = f"{today}-boj-{num}.md"
+    out_path = os.path.join(OUTPUT_DIR, fname)
 
-      with open(out_path, "w", encoding="utf-8") as out:
-        out.write(front + body)
+    # 혹시 같은 날 재실행 방지
+    if os.path.exists(out_path):
+      continue
 
-      print("[생성 완료]", fname)
+    with open(out_path, "w", encoding="utf-8") as out:
+      out.write(front + body)
+
+    print("[생성 완료]", fname)
 
 if __name__ == "__main__":
   main()
