@@ -6,11 +6,11 @@ from convert import convert_to_markdown
 
 GITHUB_TOKEN = os.environ["BLOG_TOKEN"]
 REPO_NAME = "Yeonb0/Code-Practice"
-OUTPUT_DIR = "_posts/BOJ"
 
+OUTPUT_DIR = "_posts/BOJ"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def extract_tags(readme):
+def extract_tags(readme: str):
   tags = set()
   m = re.search(r"### 분류\s+(.*)", readme)
   if m:
@@ -26,69 +26,67 @@ def main():
   repo = g.get_repo(REPO_NAME)
   today = datetime.now().strftime("%Y-%m-%d")
 
-  with open("changed.txt", encoding="utf-8") as f:
-    changed = f.readlines()
+  base = repo.get_contents("백준")
 
-  done = set()
-
-  for line in changed:
-    if not line.startswith("백준/"):
+  for tier in base:
+    if tier.type != "dir":
       continue
 
-    parts = line.strip().split("/")
-    tier_name = parts[1]                 # "Bronze 1"
-    tier_category = tier_name.split()[0] # "Bronze"
+    tier_name = tier.name                 # Bronze 1
+    tier_category = tier_name.split()[0]  # Bronze
 
-    num = None
-    title = None
-    for p in parts:
-      if "." in p:
-        num, title = p.split(".", 1)
-        break
+    problems = repo.get_contents(tier.path)
+    for p in problems:
+      if p.type != "dir":
+        continue
 
-    if not num or num in done:
-      continue
-    done.add(num)
+      if "." not in p.name:
+        continue
 
-    folder = "/".join(parts[:-1])
-    files = repo.get_contents(folder)
+      num, title = p.name.split(".", 1)
+      fname = f"{today}-boj-{num}.md"
+      out_path = os.path.join(OUTPUT_DIR, fname)
 
-    readme = None
-    code = None
-    for f in files:
-      if f.name == "README.md":
-        readme = f.decoded_content.decode("utf-8")
-      elif f.name.endswith(".cc"):
-        code = f.decoded_content.decode("utf-8")
+      # 🔑 중복 방지 (여기가 정답 위치)
+      if os.path.exists(out_path):
+        continue
 
-    if not readme or not code:
-      continue
+      files = repo.get_contents(p.path)
 
-    tags = extract_tags(readme)
+      readme = None
+      code = None
+      for f in files:
+        if f.name == "README.md":
+          readme = f.decoded_content.decode("utf-8")
+        elif f.name.endswith(".cc"):
+          code = f.decoded_content.decode("utf-8")
 
-    front = "---\n"
-    front += "layout: single\n"
-    front += f"title: \"[{tier_name} / {num}] {title.strip()}\"\n"
-    front += "categories:\n"
-    front += "  - BOJ\n"
-    front += f"  - {tier_category}\n"
-    front += "tags:\n"
-    for t in tags:
-      front += f"  - {t}\n"
-    front += "---\n\n"
+      if not readme or not code:
+        continue
 
-    body = convert_to_markdown(readme)
-    body += "\n\n## 💻 코드 (C++)\n\n"
-    body += "```cpp\n"
-    body += code.rstrip() + "\n"
-    body += "```\n\n"
+      tags = extract_tags(readme)
 
+      front = "---\n"
+      front += "layout: single\n"
+      front += f"title: \"[{tier_name} / {num}] {title.strip()}\"\n"
+      front += "categories:\n"
+      front += "  - BOJ\n"
+      front += f"  - {tier_category}\n"
+      front += "tags:\n"
+      for t in tags:
+        front += f"  - {t}\n"
+      front += "---\n\n"
 
-    fname = f"{today}-boj-{num}.md"
-    with open(os.path.join(OUTPUT_DIR, fname), "w", encoding="utf-8") as out:
-      out.write(front + body)
+      body = convert_to_markdown(readme)
+      body += "\n\n## 💻 코드 (C++)\n\n"
+      body += "```cpp\n"
+      body += code.rstrip() + "\n"
+      body += "```\n\n"
 
-    print("[생성 완료]", fname)
+      with open(out_path, "w", encoding="utf-8") as out:
+        out.write(front + body)
+
+      print("[생성 완료]", fname)
 
 if __name__ == "__main__":
   main()
