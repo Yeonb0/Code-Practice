@@ -6,7 +6,7 @@ from convert import convert_to_markdown
 
 GITHUB_TOKEN = os.environ["BLOG_TOKEN"]
 REPO_NAME = "Yeonb0/Code-Practice"
-OUTPUT_DIR = "generated"
+OUTPUT_DIR = "_posts/BOJ"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
