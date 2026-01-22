@@ -1,10 +1,35 @@
 import os
 import re
+import codecs
 from datetime import datetime
 from convert import convert_to_markdown
 
 OUTPUT_DIR = "_posts/BOJ"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+def normalize_path(raw: str) -> str:
+  """
+  GitHub Actions의 git diff 결과:
+  "\353\260\261/Gold/9019.\342\200\205DSLR/DSLR.cc"
+  같은 문자열을
+  백준/Gold/9019. DSLR/DSLR.cc
+  로 복원
+  """
+  raw = raw.strip()
+
+  # 앞뒤 따옴표 제거
+  if raw.startswith('"') and raw.endswith('"'):
+    raw = raw[1:-1]
+
+  # unicode escape 복원
+  try:
+    raw = codecs.decode(raw, "unicode_escape")
+  except Exception:
+    pass
+
+  return raw
+
 
 def extract_tags(readme: str):
   tags = set()
@@ -17,17 +42,18 @@ def extract_tags(readme: str):
   tags.add("C++")
   return sorted(tags)
 
+
 def main():
   today = datetime.now().strftime("%Y-%m-%d")
 
   # 🔑 이번 커밋에서 변경된 파일 목록
   with open("changed.txt", encoding="utf-8") as f:
-    changed = [line.strip() for line in f if line.strip()]
+    changed = [normalize_path(line) for line in f if line.strip()]
 
   processed = set()
 
   for path in changed:
-    print("[DEBUG] changed:", path)
+    print("[DEBUG] normalized path:", path)
 
     # BOJ 경로만 처리
     if not path.startswith("백준/"):
@@ -48,14 +74,14 @@ def main():
 
     num, title = name.split(".", 1)
 
-    readme = None
-    code = None
-
-    # 🔑 로컬 파일 시스템 기준으로 읽기
     if not os.path.isdir(folder):
       print("[DEBUG] folder not found:", folder)
       continue
 
+    readme = None
+    code = None
+
+    # 🔑 로컬 파일 기준으로 README / 코드 탐색
     for fname in os.listdir(folder):
       full = os.path.join(folder, fname)
 
@@ -74,8 +100,8 @@ def main():
 
     # 티어 정보
     parts = folder.split("/")
-    tier_name = parts[1]              # Bronze 1
-    tier_category = tier_name.split()[0]  # Bronze
+    tier_name = parts[1]                  # Gold
+    tier_category = tier_name.split()[0]  # Gold
 
     tags = extract_tags(readme)
 
@@ -107,6 +133,7 @@ def main():
       out.write(front + body)
 
     print("[생성 완료]", fname)
+
 
 if __name__ == "__main__":
   main()
