@@ -9,24 +9,21 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 def normalize_path(raw: str) -> str:
-  """
-  GitHub Actions의 git diff 결과:
-  "\353\260\261/Gold/9019.\342\200\205DSLR/DSLR.cc"
-  같은 문자열을
-  백준/Gold/9019. DSLR/DSLR.cc
-  로 복원
-  """
   raw = raw.strip()
 
   # 앞뒤 따옴표 제거
   if raw.startswith('"') and raw.endswith('"'):
     raw = raw[1:-1]
 
-  # unicode escape 복원
   try:
-    raw = codecs.decode(raw, "unicode_escape")
-  except Exception:
-    pass
+    # 1단계: \353\260... 같은 escape 해제
+    s = codecs.decode(raw, "unicode_escape")
+
+    # 2단계: 깨진 문자열을 다시 bytes로 보고
+    # 3단계: UTF-8로 재해석
+    raw = s.encode("latin1").decode("utf-8")
+  except Exception as e:
+    print("[WARN] normalize failed:", raw, e)
 
   return raw
 
