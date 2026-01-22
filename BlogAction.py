@@ -1,11 +1,7 @@
 import os
 import re
 from datetime import datetime
-from github import Github
 from convert import convert_to_markdown
-
-GITHUB_TOKEN = os.environ["BLOG_TOKEN"]
-REPO_NAME = "Yeonb0/Code-Practice"
 
 OUTPUT_DIR = "_posts/BOJ"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -22,52 +18,64 @@ def extract_tags(readme: str):
   return sorted(tags)
 
 def main():
-  g = Github(GITHUB_TOKEN)
-  repo = g.get_repo(REPO_NAME)
   today = datetime.now().strftime("%Y-%m-%d")
 
-  # 🔑 이번 커밋에서 변경된 파일만 사용
+  # 🔑 이번 커밋에서 변경된 파일 목록
   with open("changed.txt", encoding="utf-8") as f:
-    changed = f.readlines()
+    changed = [line.strip() for line in f if line.strip()]
 
   processed = set()
 
-  for line in changed:
-    path = line.strip()
+  for path in changed:
+    print("[DEBUG] changed:", path)
 
-    # BOJ 문제 파일만
+    # BOJ 경로만 처리
     if not path.startswith("백준/"):
       continue
 
-    # 문제 폴더 경로 추출
-    folder = "/".join(path.split("/")[:-1])
+    # 문제 폴더 추출
+    folder = os.path.dirname(path)
     if folder in processed:
       continue
     processed.add(folder)
 
-    # 폴더명에서 번호/제목 추출
-    name = folder.split("/")[-1]
+    print("[DEBUG] folder:", folder)
+
+    # 폴더명에서 번호 / 제목 추출
+    name = os.path.basename(folder)
     if "." not in name:
       continue
 
     num, title = name.split(".", 1)
 
-    files = repo.get_contents(folder)
-
     readme = None
     code = None
-    for f in files:
-      if f.name == "README.md":
-        readme = f.decoded_content.decode("utf-8")
-      elif f.name.endswith(".cc"):
-        code = f.decoded_content.decode("utf-8")
+
+    # 🔑 로컬 파일 시스템 기준으로 읽기
+    if not os.path.isdir(folder):
+      print("[DEBUG] folder not found:", folder)
+      continue
+
+    for fname in os.listdir(folder):
+      full = os.path.join(folder, fname)
+
+      if fname == "README.md":
+        with open(full, encoding="utf-8") as f:
+          readme = f.read()
+
+      elif fname.endswith((".cc", ".cpp", ".cxx")):
+        with open(full, encoding="utf-8") as f:
+          code = f.read()
+
+    print("[DEBUG] readme:", bool(readme), "code:", bool(code))
 
     if not readme or not code:
       continue
 
     # 티어 정보
-    tier_name = folder.split("/")[1]           # Bronze 1
-    tier_category = tier_name.split()[0]       # Bronze
+    parts = folder.split("/")
+    tier_name = parts[1]              # Bronze 1
+    tier_category = tier_name.split()[0]  # Bronze
 
     tags = extract_tags(readme)
 
@@ -86,13 +94,13 @@ def main():
     body += "\n\n## 💻 코드 (C++)\n\n"
     body += "```cpp\n"
     body += code.rstrip() + "\n"
-    body += "```\n\n"
+    body += "```\n"
 
     fname = f"{today}-boj-{num}.md"
     out_path = os.path.join(OUTPUT_DIR, fname)
 
-    # 혹시 같은 날 재실행 방지
     if os.path.exists(out_path):
+      print("[SKIP] already exists:", fname)
       continue
 
     with open(out_path, "w", encoding="utf-8") as out:
