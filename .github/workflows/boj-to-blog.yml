@@ -1,44 +1,72 @@
-name: BOJ Auto Blog
+name: BOJ to Blog
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  blog:
+  boj-to-blog:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 2   # ⚠️ 중요: diff를 위해 필요
+      - name: Checkout Code-Practice
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # 🔑 HEAD~1 사용 가능하게
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-    - name: Install dependency
-      run: pip install PyGithub
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyGithub
 
-    # ✅ 여기!
-    - name: Get changed files
-      run: git diff --name-only HEAD~1 HEAD > changed.txt
+      - name: Get changed files (BOJ only)
+        shell: bash
+        run: |
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            git diff --name-only HEAD~1 HEAD > changed.txt
+          else
+            git diff --name-only HEAD > changed.txt
+          fi
 
-    - name: Generate posts
-      env:
-        BLOG_TOKEN: ${{ secrets.BLOG_TOKEN }}
-      run: python BlogAction.py
+      - name: Debug changed.txt
+        run: |
+          echo "===== changed.txt ====="
+          cat changed.txt || true
+          echo "======================="
 
-    - name: Push to blog
-      env:
-        BLOG_TOKEN: ${{ secrets.BLOG_TOKEN }}
-      run: |
-        git clone https://Yeonb0:$BLOG_TOKEN@github.com/Yeonb0/Yeonb0.github.io.git blog
-        mkdir -p blog/_posts/BOJ
-        cp _posts/BOJ/*.md blog/_posts/BOJ/ || true
-        cd blog
-        git config user.name "github-actions"
-        git config user.email "actions@github.com"
-        git add .
-        git commit -m "Add BOJ solution post" || true
-        git push
+      - name: Run BlogAction
+        env:
+          BLOG_TOKEN: ${{ secrets.BLOG_TOKEN }}
+        run: |
+          python BlogAction.py
+
+      - name: Clone blog repo
+        run: |
+          git clone https://github.com/Yeonb0/Yeonb0.github.io.git blog
+
+      - name: Copy generated posts
+        run: |
+          mkdir -p blog/_posts/BOJ
+          cp _posts/BOJ/*.md blog/_posts/BOJ/ || echo "No posts to copy"
+
+      - name: Commit and push
+        run: |
+          cd blog
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add _posts/BOJ
+          git status
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add BOJ posts"
+            git push
+          fi
