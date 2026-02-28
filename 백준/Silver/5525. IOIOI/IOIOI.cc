@@ -10,20 +10,21 @@ int main() {
 	cin >> n >> m;
 	string s;
 	cin >> s;
-
-	string target = "";
-	for(int i = 0; i < n; i++) {
-		target += "IO";
-	}
-	target += "I";
 	
+	int ans = 0;
 	int count = 0;
-    size_t pos = 0;
+	
+	for(int i = 1; i < m-1; i++) {
+		if(s[i-1] == 'I' && s[i] == 'O' && s[i+1] == 'I') {
+			count++;
+			i++; // O 다음으로 이동
+		} else {
+			count = 0;
+		}
+		if(count >= n) ans++; // 중복 처리
+	}
 
-     while ((pos = s.find(target, pos)) != string::npos) {
-        count++;
-        pos += 1; // 한 칸 이동
-     }
-    cout << count;
-    return 0;
+	cout << ans;
+	
+	return 0;
 }
