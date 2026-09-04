@@ -6,13 +6,16 @@
 
 | Total Problems | Topics |
 |---|---|
-| 2 | 3 |
+| 3 | 6 |
 
 ---
 
 ## 📂 Topic-Wise Problems
 
 - [brute force](#brute-force) (1)
+- [data structures](#data-structures) (1)
+- [hashing](#hashing) (1)
+- [implementation](#implementation) (1)
 - [math](#math) (1)
 - [strings](#strings) (1)
 
@@ -23,6 +26,24 @@
 | # | Problem | Difficulty | Solution |
 |---|---------|------------|----------|
 | 4A | [Watermelon](https://codeforces.com/contest/4/problem/A) | 800 | [C++17 (GCC 7-32)](https://github.com/Yeonb0/Code-Practice/blob/HEAD/CodeForce/800/4_A%20-%20Watermelon/solution.cpp) |
+
+### data structures
+
+| # | Problem | Difficulty | Solution |
+|---|---------|------------|----------|
+| 4C | [Registration System](https://codeforces.com/contest/4/problem/C) | 1300 | [C++17 (GCC 7-32)](https://github.com/Yeonb0/Code-Practice/blob/HEAD/CodeForce/1300/4_C%20-%20Registration%20System/solution.cpp) |
+
+### hashing
+
+| # | Problem | Difficulty | Solution |
+|---|---------|------------|----------|
+| 4C | [Registration System](https://codeforces.com/contest/4/problem/C) | 1300 | [C++17 (GCC 7-32)](https://github.com/Yeonb0/Code-Practice/blob/HEAD/CodeForce/1300/4_C%20-%20Registration%20System/solution.cpp) |
+
+### implementation
+
+| # | Problem | Difficulty | Solution |
+|---|---------|------------|----------|
+| 4C | [Registration System](https://codeforces.com/contest/4/problem/C) | 1300 | [C++17 (GCC 7-32)](https://github.com/Yeonb0/Code-Practice/blob/HEAD/CodeForce/1300/4_C%20-%20Registration%20System/solution.cpp) |
 
 ### math
 
